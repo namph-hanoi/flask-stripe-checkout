@@ -8,7 +8,7 @@ app = Flask(__name__)
 stripe_keys = {
     "secret_key": os.environ["STRIPE_SECRET_KEY"],
     "publishable_key": os.environ["STRIPE_PUBLISHABLE_KEY"],
-    "endpoint_secret": os.environ["STRIPE_ENDPOINT_SECRET"]
+    "endpoint_secret": os.environ["STRIPE_ENDPOINT_SECRET"],
 }
 
 stripe.api_key = stripe_keys["secret_key"]
@@ -52,22 +52,21 @@ def create_checkout_session():
             mode="payment",
             line_items=[
                 {
-                    "name": "T-shirt",
+                    "price": 'price_id_random_from_dashboard',
+                    # For metered billing, do not pass quantity
                     "quantity": 1,
-                    "currency": "usd",
-                    "amount": "2000",
                 }
-            ]
+            ],
         )
         return jsonify({"sessionId": checkout_session["id"]})
     except Exception as e:
         return jsonify(error=str(e)), 403
 
 
-@app.route("/webhook", methods=['POST'])
+@app.route("/webhook", methods=["POST"])
 def stripe_webhook():
     payload = request.get_data(as_text=True)
-    sig_header = request.headers.get('Stripe-Signature')
+    sig_header = request.headers.get("Stripe-Signature")
 
     try:
         event = stripe.Webhook.construct_event(
@@ -76,19 +75,19 @@ def stripe_webhook():
 
     except ValueError as e:
         # Invalid payload
-        return 'Invalid payload', 400
+        return "Invalid payload", 400
     except stripe.error.SignatureVerificationError as e:
         # Invalid signature
-        return 'Invalid signature', 400
+        return "Invalid signature", 400
 
     # Handle the checkout.session.completed event
-    if event['type'] == 'checkout.session.completed':
-        session = event['data']['object']
+    if event["type"] == "checkout.session.completed":
+        session = event["data"]["object"]
 
         # Fulfill the purchase...
         handle_checkout_session(session)
 
-    return 'Success', 200
+    return "Success", 200
 
 
 def handle_checkout_session(session):
